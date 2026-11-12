@@ -59,7 +59,7 @@ Every 5 seconds of simulation time, a LangGraph supervisor runs `sense → recov
 5. **Blind camera.** After 30 s without a usable camera, a junction switches to a Max-Pressure backup rule.
 6. **Otherwise the AI decides.** Four PPO junction agents share one policy, and the Coordinator overrides obvious mistakes, such as giving green to an empty road.
 
-When a camera is unreliable, the **Recovery agent** (one Kalman filter per approach) estimates queues from road sensors and the junction upstream.
+When a camera is unreliable, the **Recovery agent** (one Kalman filter per approach) estimates queues from road sensors and the junction upstream. A **camera trust check** (`recovery/trust.py`) doesn't take a camera's own health score on faith. If its counts keep disagreeing with the road sensors, it's trusted less and the junction switches to estimates, even when the camera says it's fine. On the first live run with System 1, it caught cameras that reported 100% health while counting 0 cars.
 
 ## Architecture
 
