@@ -17,6 +17,7 @@ import bus
 MOOD = {"camera_down": "amber", "camera_up": "green", "mode_change": "amber", "emergency_start": "red",
         "emergency_end": "green", "ped_cap": "amber", "spillback": "amber", "shield_block": "amber", "info": "green",
         # System 1 bridge events
+        "camera_distrusted": "amber", "camera_trusted": "green",
         "max_green_forced": "amber", "max_red_forced": "amber", "act_rejected_unknown_phase": "red",
         "ctl_reset_ignored": "amber"}
 
@@ -42,6 +43,11 @@ def template(e: dict) -> str:
         return f"Ambulance cleared {j}. Now giving the waiting side extra green to drain the queue."
     if typ == "ped_cap":
         return f"Someone at {j} has waited {d.get('waited_s', 60):.0f} s to cross. Walk signal comes next."
+    if typ == "camera_distrusted":
+        return (f"{j} camera counts {d.get('camera', '?')} vehicles but the road sensors count {d.get('sensors', '?')}. "
+                f"I'm trusting that camera less and blending in the sensors.")
+    if typ == "camera_trusted":
+        return f"{j} camera agrees with the road sensors again, so I'm trusting it fully."
     if typ == "max_green_forced":
         return f"{j} kept one green for 60 s, so System 1's safety guard switched it to give the other road a turn."
     if typ == "max_red_forced":
@@ -108,8 +114,8 @@ class Narrator:
             batch = [e]
             while not self.q.empty() and len(batch) < 10:
                 batch.append(self.q.get_nowait())
-            order = ["emergency_start", "act_rejected_unknown_phase", "camera_down", "mode_change", "ped_cap",
-                     "max_red_forced", "max_green_forced", "spillback", "emergency_end", "camera_up",
+            order = ["emergency_start", "act_rejected_unknown_phase", "camera_down", "camera_distrusted", "mode_change", "ped_cap",
+                     "max_red_forced", "max_green_forced", "spillback", "emergency_end", "camera_up", "camera_trusted",
                      "shield_block", "ctl_reset_ignored", "info"]
             batch.sort(key=lambda x: order.index(x["type"]) if x["type"] in order else 99)
             e = batch[0]

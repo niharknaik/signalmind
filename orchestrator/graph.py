@@ -17,6 +17,7 @@ from langgraph.graph import END, START, StateGraph
 import bus
 from agents.junction.env import NEIGHBOURS, obs_vector
 from recovery.kalman import Recovery
+from recovery.trust import CameraTrust
 from orchestrator.brain import Brain
 from twin.sim import J
 
@@ -29,12 +30,14 @@ class Cycle(TypedDict, total=False):
     obs: dict
     decisions: dict
     events: list
+    trust_events: list
 
 
 def build(brain: Brain, narrator=None, publish: bool = True, send_acts: bool = True):
     """send_acts=False is observe-only mode: decide and publish obs/events, but never write act.*
     (used until the act format is agreed with System 1's bridge)."""
     rec = Recovery(J)
+    trust = CameraTrust()
 
     def sense(s: Cycle) -> dict:
         gt = {j: bus.latest(bus.gt(j), bus.GroundTruth) for j in J}
@@ -43,7 +46,7 @@ def build(brain: Brain, narrator=None, publish: bool = True, send_acts: bool = T
         return {"t": t, "gt": gt, "perc": pc}
 
     def recover(s: Cycle) -> dict:
-        est = {}
+        est, trust_events = {}, []
         for j in J:
             g, p = s["gt"][j], s["perc"][j]
             if g is None:
@@ -53,11 +56,16 @@ def build(brain: Brain, narrator=None, publish: bool = True, send_acts: bool = T
                 seen, health, fault = [0.0] * 4, 0.0, "blackout"
             else:
                 seen, health, fault = [float(x) for x in p.queues], p.health, p.fault
+                # trust check: a camera that keeps disagreeing with the road sensors is trusted less,
+                # even if its own health score says it's fine
+                health, fault, ev = trust.check(j, g.t, seen, [float(x) for x in g.queues], health, fault)
+                if ev:
+                    trust_events.append(ev)
             # road sensors = SUMO induction loops on System 1, coarse (multiples of ~2 vehicles)
             loop = [round(q / 2.0) * 2.0 for q in g.queues]
             q, src = rec.estimate(j, seen, health, g.phase, loop=loop)
             est[j] = {"q": q, "health": health, "fault": fault, "source": src}
-        return {"est": est}
+        return {"est": est, "trust_events": trust_events}
 
     def decide(s: Cycle) -> dict:
         obs = {}
@@ -104,7 +112,7 @@ def build(brain: Brain, narrator=None, publish: bool = True, send_acts: bool = T
                     ped_max_wait_s=g.ped_max_wait_s, emergency=g.emergency, health=o["health"],
                     fault=o["fault"], source=o["source"], co2_g_s=g.co2_g_s, fuel_ml_s=g.fuel_ml_s,
                     phase=g.phase, stage=g.stage, mode=d.mode if d else "ai", decided_by=d.decided_by if d else "none"))
-            for e in s["events"]:
+            for e in s.get("trust_events", []) + s["events"]:
                 bus.publish(bus.EVENT, bus.Event(**e))
                 if narrator:
                     narrator.push(e)

@@ -20,7 +20,8 @@ JUNCTIONS = ["J1", "J2", "J3", "J4"]
 APPROACHES = ["N", "E", "S", "W"]
 MAXLEN = 1000
 
-Fault = Literal["none", "blackout", "noise", "freeze", "occlusion"]
+Fault = Literal["none", "blackout", "noise", "freeze", "occlusion",
+                "mismatch"]   # mismatch: System 2's trust check (camera disagrees with road sensors)
 Mode = Literal["ai", "degraded", "fallback"]
 
 
