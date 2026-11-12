@@ -79,7 +79,15 @@ def reader():
                 for mid, f in entries:
                     ids[stream] = mid
                     if stream.startswith("frame."):
-                        STATE["frames"][stream.split(".")[1]] = f.get("jpg", "")
+                        # System 1 sends {"d": {"jpeg_b64": ..., "w", "h", "health", "overlay"}};
+                        # our stand-in format was a plain "jpg" field. Accept both.
+                        img = f.get("jpg", "")
+                        if not img and "d" in f:
+                            try:
+                                img = json.loads(f["d"]).get("jpeg_b64", "")
+                            except ValueError:
+                                img = ""
+                        STATE["frames"][stream.split(".")[1]] = img
                         continue
                     d = json.loads(f["d"]) if "d" in f else bus._coerce(f)
                     if stream in (bus.KPI, KPI_B):
