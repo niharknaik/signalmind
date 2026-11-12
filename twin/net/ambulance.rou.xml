@@ -1,0 +1,6 @@
+<routes>
+  <vType id="ambulance" vClass="emergency" guiShape="emergency" emissionClass="HBEFA3/LDV_D_EU4" length="6" speedFactor="1.3" color="1,0,0"/>
+  <vehicle id="amb_01" type="ambulance" depart="300" departLane="best" departSpeed="max"><route edges="W0_J1 J1_J2 J2_J3 J3_J4 J4_E0"/></vehicle>
+  <vehicle id="amb_02" type="ambulance" depart="1500" departLane="best" departSpeed="max"><route edges="W0_J1 J1_J2 J2_J3 J3_J4 J4_E0"/></vehicle>
+  <vehicle id="amb_03" type="ambulance" depart="2700" departLane="best" departSpeed="max"><route edges="W0_J1 J1_J2 J2_J3 J3_J4 J4_E0"/></vehicle>
+</routes>

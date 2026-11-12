@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SignalMind Traffic Operations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Traffic-operations console. Flat 1px panels, strict grid, instrument-style mono numbers.
+   One accent (navy) for navigation; red / amber / green only for signal and health state. Map stays dark in both themes. */
+:root{
+  --bg:#eef0f2; --panel:#ffffff; --sub:#f6f7f8; --rule:#d9dde1; --rule2:#e9ecef;
+  --text:#161a1e; --muted:#5b636c; --faint:#8a929a;
+  --accent:#1f3a5f; --accent-soft:#e6ecf4;
+  --go:#17803d; --amber:#a7650a; --stop:#c0392b; --ped:#2f6fbf;
+  --go-soft:#e5f3ea; --amber-soft:#fbf1dc; --stop-soft:#fae4e1;
+  --scen:#fff4d6; --scen-rule:#f0d58c;
+  --sans:"Public Sans","Segoe UI",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0d1115; --panel:#14191f; --sub:#181e25; --rule:#262e37; --rule2:#1e252d;
+  --text:#e4e8ec; --muted:#9aa3ad; --faint:#6e7883;
+  --accent:#8fb3e6; --accent-soft:#1a2535;
+  --go:#4cc47c; --amber:#e3aa4c; --stop:#ef7466; --ped:#6ea4ee;
+  --go-soft:#11261a; --amber-soft:#2a2011; --stop-soft:#2c1714;
+  --scen:#2a2111; --scen-rule:#4f3d16;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.5 var(--sans);min-height:100vh}
+.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+button,input{font:inherit;color:inherit}
+[hidden]{display:none!important}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- header ---------- */
+header{background:var(--panel);border-bottom:1px solid var(--rule);display:flex;align-items:stretch;gap:24px;padding:0 20px;min-height:52px;position:sticky;top:0;z-index:5}
+.wm{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+.wm span{font-weight:400;color:var(--muted);font-size:13px;padding-left:10px;border-left:1px solid var(--rule)}
+nav{display:flex;align-items:stretch;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav a{display:flex;align-items:center;padding:0 12px;color:var(--muted);text-decoration:none;font-weight:500;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+nav a:hover{color:var(--text)}
+nav a[aria-current=page]{color:var(--text);border-bottom-color:var(--accent)}
+nav a .n{margin-left:6px;font-family:var(--mono);font-size:11px;background:var(--stop);color:#fff;border-radius:2px;padding:0 4px}
+.hr{margin-left:auto;display:flex;align-items:center;gap:14px;white-space:nowrap}
+.clock{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.clock b{color:var(--text);font-weight:500}
+.link{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}
+.sq{width:8px;height:8px;background:var(--faint);display:inline-block;flex:none}
+.sq.ok{background:var(--go)} .sq.bad{background:var(--stop)} .sq.warn{background:var(--amber)}
+.tbtn{background:none;border:1px solid var(--rule);border-radius:3px;padding:4px 9px;font-size:12.5px;color:var(--muted);cursor:pointer}
+.tbtn:hover{color:var(--text);border-color:var(--faint)}
+.tbtn[aria-pressed=true]{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+
+/* scenario strip */
+.scen{background:var(--scen);border-bottom:1px solid var(--scen-rule);padding:8px 20px;display:flex;gap:10px 18px;align-items:center;flex-wrap:wrap;font-size:13.5px}
+.scen b{font-weight:600}
+.scen .it{display:inline-flex;align-items:center;gap:6px}
+.scen button{margin-left:auto;background:var(--panel);border:1px solid var(--scen-rule);border-radius:3px;padding:3px 10px;cursor:pointer;font-size:13px}
+
+main{padding:16px 20px 28px;max-width:1600px;margin:0 auto}
+.panel{background:var(--panel);border:1px solid var(--rule);border-radius:3px;min-width:0}
+.ph{display:flex;align-items:baseline;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rule2);flex-wrap:wrap}
+.ph h2{margin:0;font-size:14px;font-weight:600}
+.ph .meta{color:var(--muted);font-size:12.5px}
+.ph .r{margin-left:auto}
+.pb{padding:12px 14px}
+.lead{margin:0 0 14px;color:var(--muted);max-width:80ch}
+
+/* ---------- overview ---------- */
+/* Reading order: 1 performance band (the headline), 2 map + junction strip, 3 rail (controls, then the log
+   stretched to the map column's height so both columns end on one line). */
+.band-wrap{margin-bottom:16px}
+.band{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.cell{padding:12px 16px 14px;border-right:1px solid var(--rule2);min-width:0}
+.cell:last-child{border-right:0}
+.cell .l{font-size:13px;color:var(--muted)}
+.cell .v{font-family:var(--mono);font-size:30px;font-weight:500;line-height:1.15;margin:2px 0 4px;white-space:nowrap}
+.cell .v small{font-size:13px;color:var(--muted);margin-left:3px}
+.cell .c{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12.5px;color:var(--muted);padding-top:6px;border-top:1px dashed var(--rule2)}
+.cell .c b{font-family:var(--mono);font-weight:600;font-size:13px}
+.ov{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"map rail";gap:16px;align-items:stretch}
+.ov-map{grid-area:map;align-self:start} .ov-rail{grid-area:rail;display:flex;flex-direction:column;gap:16px;min-height:0}
+.logp{flex:1 1 0;display:flex;flex-direction:column;min-height:260px}
+.logp .log{flex:1 1 0;overflow:auto;min-height:0}
+.strip .waiting{grid-column:1/-1;padding:14px;color:var(--faint);border-right:0}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.lg{width:9px;height:9px;display:inline-block}
+.mapbox{background:#11171d;line-height:0}
+#map{display:block;width:100%;height:auto}
+.strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--rule)}
+.js{padding:10px 14px;border-right:1px solid var(--rule2);min-width:0;display:flex;flex-direction:column;gap:3px}
+.js:last-child{border-right:0}
+.js .t{display:flex;align-items:center;gap:7px;margin-bottom:3px}
+.js .t b{font-size:15px}
+.js .t em{font-style:normal;font-size:12.5px;font-weight:600}
+.js .kv{display:flex;justify-content:space-between;gap:8px;font-size:13px}
+.js .kv span:first-child{color:var(--muted)}
+.js .amb{margin-top:4px;font-size:12.5px;font-weight:600;color:var(--stop)}
+
+/* performance readout */
+.perf{display:flex;flex-direction:column}
+.pr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:10px 14px;border-top:1px solid var(--rule2)}
+.pr:first-child{border-top:0}
+.pr .l{color:var(--muted);font-size:13px}
+.pr .v{font-family:var(--mono);font-size:22px;font-weight:500;text-align:right;line-height:1.2}
+.pr .v small{font-size:12px;color:var(--muted);margin-left:2px}
+.pr .c{grid-column:1/-1;display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.pr .c b{font-weight:600}
+.good{color:var(--go)!important} .bad{color:var(--stop)!important}
+.nocmp{font-size:12.5px;color:var(--faint);padding:8px 14px 12px}
+
+.ctl label{display:flex;justify-content:space-between;font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent);margin:6px 0 2px}
+.hint{font-size:12.5px;color:var(--muted)}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn{background:var(--panel);border:1px solid var(--rule);border-radius:3px;padding:8px 10px;cursor:pointer;text-align:left;font-weight:500;font-size:13px}
+.btn:hover{border-color:var(--faint);background:var(--sub)}
+.btn small{display:block;font-weight:400;color:var(--muted);font-size:12px;margin-top:1px}
+.btn.warn{border-color:var(--stop);color:var(--stop)}
+.btn.on{border-color:var(--amber);background:var(--amber-soft)}
+
+.log{list-style:none;margin:0;padding:0}
+.log li{display:grid;grid-template-columns:70px 38px minmax(0,1fr);gap:10px;padding:8px 14px;border-top:1px solid var(--rule2);font-size:13px;align-items:baseline}
+.log li:first-child{border-top:0}
+.log .tm{font-family:var(--mono);font-size:12px;color:var(--faint)}
+.log .jn{font-family:var(--mono);font-size:12px;font-weight:500}
+.log .sev{display:inline-block;width:3px;height:12px;margin-right:6px;vertical-align:-1px}
+.signo{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;background:var(--sub);border-bottom:1px solid var(--rule2)}
+.signo p{margin:0;font-size:14px}
+.signo small{color:var(--faint);font-size:12px}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:8px 12px;border-top:1px solid var(--rule2);white-space:nowrap}
+thead th{font-weight:600;color:var(--muted);font-size:12.5px;background:var(--sub);border-top:0}
+td.r,th.r{text-align:right}
+.tw{overflow-x:auto}
+.state{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12.5px}
+
+/* compare */
+.cmphead{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;margin-bottom:14px}
+.cmphead h2{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+.cmphead p{margin:0;color:var(--muted)}
+.big{font-size:15px;padding:12px 14px;border-bottom:1px solid var(--rule2)}
+.big b{font-family:var(--mono);font-size:26px;font-weight:500;margin-right:6px}
+.cmpgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+canvas.chart{display:block;width:100%;height:230px}
+.keyl{display:flex;gap:16px;font-size:12.5px;color:var(--muted)}
+.keyl i{display:inline-block;width:14px;height:2px;vertical-align:middle;margin-right:5px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.bars{display:flex;flex-direction:column;gap:9px}
+.brow{display:grid;grid-template-columns:32px minmax(0,1fr) 64px;gap:10px;align-items:center;font-size:13px}
+.btrack{height:8px;background:var(--rule2)}
+.btrack i{display:block;height:100%}
+.cams{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.cam{aspect-ratio:16/9;background:#11171d;display:grid;place-items:center;color:#7d8996;font-size:12.5px;overflow:hidden;position:relative;text-align:center;padding:10px}
+.cam img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam span{position:absolute;left:0;top:0;background:#000b;color:#fff;padding:1px 7px;font-family:var(--mono);font-size:11.5px}
+.finds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--rule2)}
+.find{padding:12px 14px;border-right:1px solid var(--rule2);border-bottom:1px solid var(--rule2)}
+.find:nth-child(3n){border-right:0}
+.find b{display:block;font-size:16px;margin-bottom:2px}
+.find span{color:var(--muted);font-size:13px}
+.help ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}
+.gl{display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px 14px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,8px);background:var(--text);color:var(--panel);padding:9px 16px;border-radius:3px;font-size:13.5px;opacity:0;transition:.18s;pointer-events:none;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- responsive ---------- */
+@media (max-width:1180px){
+  .ov{grid-template-columns:minmax(0,1fr);grid-template-areas:"map" "rail"}
+  .ov-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+  .logp{min-height:0;max-height:420px}
+  .cmpgrid{grid-template-columns:minmax(0,1fr)}
+  .band{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cell:nth-child(2){border-right:0} .cell:nth-child(-n+2){border-bottom:1px solid var(--rule2)}
+}
+@media (max-width:820px){
+  header{flex-wrap:wrap;gap:0 16px;padding:0 14px}
+  .wm{min-height:46px} .hr{min-height:46px}
+  nav{order:3;width:calc(100% + 28px);margin:0 -14px;padding:0 6px;border-top:1px solid var(--rule2)}
+  nav a{padding:11px 10px}
+  main{padding:12px 12px 24px}
+  .scen{padding:8px 14px}
+  .ov-rail,.two{grid-template-columns:minmax(0,1fr)}
+  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .js:nth-child(2){border-right:0} .js:nth-child(-n+2){border-bottom:1px solid var(--rule2)}
+  .finds{grid-template-columns:minmax(0,1fr)} .find{border-right:0}
+  .cams{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gl{grid-template-columns:minmax(0,1fr);gap:2px 0} .gl dd{margin:0 0 10px}
+  .wm span{display:none}
+}
+@media (max-width:480px){
+  .hr .clock{display:none}
+  .btns{grid-template-columns:minmax(0,1fr)}
+  .legend{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@keyframes ring{0%{stroke-opacity:.9}100%{stroke-opacity:.15}}
+</style>
+<script>
+(function(){let t=null;try{t=localStorage.getItem("sm-theme")}catch(e){}
+  if(!t) t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";
+  document.documentElement.setAttribute("data-theme",t)})();
+</script>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="signo" viewBox="0 0 40 60">
+    <rect x="6" y="1" width="28" height="50" rx="7" fill="#1a222c" stroke="#33404d"/>
+    <rect x="17" y="50" width="6" height="9" fill="#1a222c"/>
+    <circle class="sg-r" cx="20" cy="12" r="5.5" fill="#e5543f" opacity=".25"/>
+    <circle class="sg-a" cx="20" cy="26" r="7" fill="#e0a21b" opacity=".3"/>
+    <circle cx="17.3" cy="25" r="1.3" fill="#1a222c"/><circle cx="22.7" cy="25" r="1.3" fill="#1a222c"/>
+    <path d="M17 28.5 Q20 31 23 28.5" stroke="#1a222c" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+    <circle class="sg-g" cx="20" cy="40" r="5.5" fill="#2fbf6c"/>
+  </symbol>
+</defs></svg>
+
+<header>
+  <div class="wm">
+    <svg width="12" height="20" viewBox="0 0 14 22" aria-hidden="true"><rect width="14" height="22" rx="3" fill="#1d2630"/><circle cx="7" cy="5" r="2.5" fill="#e5543f"/><circle cx="7" cy="11" r="2.5" fill="#e0a21b"/><circle cx="7" cy="17" r="2.5" fill="#2fbf6c"/></svg>
+    SignalMind<span>Corridor 01 · 4 junctions</span>
+  </div>
+  <nav aria-label="Sections">
+    <a href="#overview" id="n-overview">Overview</a>
+    <a href="#compare" id="n-compare">Compare</a>
+    <a href="#junctions" id="n-junctions">Junctions</a>
+    <a href="#log" id="n-log">Log</a>
+    <a href="#results" id="n-results">Results</a>
+    <a href="#help" id="n-help">Help</a>
+  </nav>
+  <div class="hr">
+    <span class="clock">SIM <b id="clock">--:--:--</b></span>
+    <span class="link"><i class="sq" id="sq"></i><span id="conn">Connecting</span></span>
+    <button class="tbtn" id="b-voice" type="button" aria-pressed="false">Voice</button>
+    <button class="tbtn" id="b-theme" type="button">Dark</button>
+  </div>
+</header>
+<div class="scen" id="scen" hidden></div>
+
+<main>
+<!-- ============ OVERVIEW ============ -->
+<section id="v-overview">
+  <div class="panel band-wrap">
+    <div class="ph"><h2>Performance since start</h2><span class="meta" id="bandmeta">SignalMind, compared with BATCS-style on the same traffic</span><a class="meta r" href="#compare">Full comparison</a></div>
+    <div class="band" id="band"></div>
+    <div class="nocmp" id="nocmp" hidden>Comparison appears when the BATCS-style shadow run is online (twin/shadow_baseline.py).</div>
+  </div>
+  <div class="ov">
+    <div class="panel ov-map">
+      <div class="ph"><h2>Corridor 01, live</h2>
+        <div class="legend r">
+          <span><i class="lg" style="background:#2fbf6c"></i>Go</span><span><i class="lg" style="background:#e0a21b"></i>Changing</span>
+          <span><i class="lg" style="background:#e5543f"></i>Stop</span><span><i class="lg" style="background:#dfe4ea"></i>Waiting car</span>
+          <span><i class="lg" style="background:#4d93e6;border-radius:50%"></i>Waiting person</span>
+        </div>
+      </div>
+      <div class="mapbox"><svg id="map" viewBox="0 0 1000 330" role="img" aria-label="Live map of the four junctions"></svg></div>
+      <div class="strip" id="strip"></div>
+    </div>
+
+    <div class="ov-rail">
+      <div class="panel ctl">
+        <div class="ph"><h2>Scenario</h2></div>
+        <div class="pb">
+          <label for="fault">Camera failures <span class="m" id="faultv">0%</span></label>
+          <input id="fault" type="range" min="0" max="50" step="5" value="0">
+          <div class="hint">Share of time each camera is broken. BATCS-style uses road sensors, so it isn't affected.</div>
+          <div class="btns">
+            <button class="btn warn" id="b-amb" type="button">Send ambulance<small>Green before it arrives</small></button>
+            <button class="btn" id="b-ped" type="button">Add pedestrians<small>Walk within 60 s</small></button>
+            <button class="btn" id="b-surge" type="button"><span id="surge-l">Start rush hour</span><small>+30% traffic</small></button>
+            <button class="btn" id="b-reset" type="button">Restart<small>Stand-in only. With Unity, restart on System 1</small></button>
+          </div>
+        </div>
+      </div>
+      <div class="panel logp">
+        <div class="ph"><h2>Latest events</h2><a class="meta r" href="#log">Full log</a></div>
+        <div class="signo"><svg width="20" height="30" aria-hidden="true"><use href="#signo"/></svg><div><small id="saytime">Signo</small><p id="say">Waiting for the corridor to come online.</p></div></div>
+        <ul class="log" id="mini"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPARE ============ -->
+<section id="v-compare" hidden>
+  <div class="cmphead"><h2>Same traffic, two controllers</h2><p>Both simulations share the network, demand, random seed and every scenario button. Only the signal control differs.</p></div>
+  <div class="cmpgrid">
+    <div class="panel">
+      <div class="big" id="cmpbig">Waiting for both runs…</div>
+      <div class="tw"><table>
+        <thead><tr><th>Measure (since start)</th><th class="r">SignalMind</th><th class="r">BATCS-style</th><th class="r">Difference</th></tr></thead>
+        <tbody id="cmpt"></tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h2>Average wait over time</h2><span class="keyl r"><span><i style="background:var(--accent)"></i>SignalMind</span><span><i style="background:var(--faint)"></i>BATCS-style</span></span></div>
+      <div class="pb"><canvas class="chart" id="c-cmp"></canvas></div>
+      <div class="pb hint" style="padding-top:0">Camera failures only affect SignalMind, because BATCS-style runs on road sensors. Rush hour, ambulances and pedestrians apply to both.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ JUNCTIONS ============ -->
+<section id="v-junctions" hidden>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="ph"><h2>Junction status</h2><span class="meta">control loop, every 5 s</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Junction</th><th>Status</th><th>Green for</th><th>Last decision</th><th class="r">Camera</th><th>Counts from</th><th class="r">Waiting N · E · S · W</th><th class="r">Walk wait</th><th class="r">CO₂ g/s</th></tr></thead>
+        <tbody id="jt"><tr><td colspan="9" style="color:var(--faint)">Waiting for the control loop…</td></tr></tbody>
+      </table></div>
+    </div>
+    <div class="two">
+      <div class="panel"><div class="ph"><h2>CO₂ by junction</h2><span class="meta">g/s, approaching vehicles</span></div><div class="pb"><div class="bars" id="co2bars"></div></div></div>
+      <div class="panel"><div class="ph"><h2>Camera health</h2><span class="meta">Sentinel agent</span></div><div class="pb"><div class="bars" id="hbars"></div></div></div>
+    </div>
+    <div class="panel"><div class="ph"><h2>Junction cameras</h2><span class="meta">video from System 1 (Unity)</span></div><div class="pb"><div class="cams" id="cams"></div></div></div>
+  </div>
+</section>
+
+<!-- ============ LOG ============ -->
+<section id="v-log" hidden>
+  <div class="panel"><div class="ph"><h2>Event log</h2><span class="meta">narrated by Signo, newest first</span></div><ul class="log" id="log"></ul></div>
+</section>
+
+<!-- ============ RESULTS ============ -->
+<section id="v-results" hidden>
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="panel">
+      <div class="ph"><h2>Experiment findings</h2><span class="meta">1-hour simulations, 2 seeds per setting, identical traffic</span></div>
+      <div id="findings" class="pb hint">No experiment results yet. Run experiments/run_grid.py.</div>
+    </div>
+    <div class="panel"><div class="ph"><h2>All controllers</h2></div><div id="res"></div></div>
+  </div>
+</section>
+
+<!-- ============ HELP ============ -->
+<section id="v-help" hidden>
+  <div class="two help">
+    <div class="panel"><div class="ph"><h2>Who decides, in order</h2></div><div class="pb"><ol>
+      <li><b>Safety rules.</b> Amber 3 s, then 2 s all-red. Green at least 10 s. Amber is never skipped.</li>
+      <li><b>Ambulances.</b> Lights on the route turn green about 15 s before arrival.</li>
+      <li><b>Pedestrians.</b> After 45 s of waiting the walk signal is next, so nobody waits over 60 s.</li>
+      <li><b>Rush hour.</b> The junctions share a green wave so traffic meets consecutive greens.</li>
+      <li><b>Blind camera.</b> After 30 s the junction switches to a simple backup rule.</li>
+      <li><b>Otherwise the AI agent decides,</b> checked by a coordinator that blocks obvious mistakes.</li>
+    </ol></div></div>
+    <div class="panel"><div class="ph"><h2>Terms</h2></div><dl class="pb gl" style="margin:0">
+      <dt><span class="state good"><i class="sq ok"></i>Normal</span></dt><dd style="margin:0">Camera healthy. The AI agent controls the junction.</dd>
+      <dt><span class="state" style="color:var(--amber)"><i class="sq warn"></i>Estimating</span></dt><dd style="margin:0">Camera noisy, frozen or blocked. Counts come from road sensors and the junction upstream.</dd>
+      <dt><span class="state bad"><i class="sq bad"></i>Backup</span></dt><dd style="margin:0">Camera blind for 30 s. A simple rule serves the longest queues.</dd>
+      <dt><b>Average wait</b></dt><dd style="margin:0">Total stopped time divided by vehicles that entered the corridor.</dd>
+      <dt><b>BATCS-style</b></dt><dd style="margin:0">Our simulated stand-in for Bengaluru's adaptive signals: actuated timing with green-wave offsets. Not the real system.</dd>
+      <dt><b>Signo, Pip</b></dt><dd style="margin:0">Signo narrates events. Pip, the yellow car on the map, moves to where the latest event happened.</dd>
+    </dl></div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const J=["J1","J2","J3","J4"], X={J1:150,J2:383,J3:617,J4:850}, MY=170, MAIN=26, SIDE=16;
+const COL={go:"#2fbf6c",amber:"#e0a21b",stop:"#e5543f",ped:"#4d93e6",car:"#dfe4ea",amb:"#ff4b3a"};
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const f1=v=>v==null||isNaN(v)?"–":Number(v).toFixed(1), f0=v=>v==null||isNaN(v)?"–":Math.round(v).toLocaleString("en-IN");
+let S=null, pip="J1", lastSay="", base=null, seen=0, view="overview", voice=false;
+const VIEWS=["overview","compare","junctions","log","results","help"];
+const NAME={fixed:"Fixed-time",batcs:"BATCS-style",maxpressure:"Max-Pressure",ppo:"AI only (PPO)",signalmind:"SignalMind"};
+const MODE={ai:["Normal","ok","good"],degraded:["Estimating","warn",""],fallback:["Backup","bad","bad"]};
+const WHO={junction_agent:"AI agent",emergency_agent:"Ambulance priority",pedestrian_agent:"Pedestrian priority",
+  maxpressure_fallback:"Backup rule",coordinator:"Coordinator",maxpressure:"Backup rule",none:"–"};
+const SRC={camera:"Camera",["kalman+upstream"]:"Estimate",loop:"Road sensors",ground_truth:"Simulator"};
+
+/* ---------- navigation, theme, voice ---------- */
+function show(){
+  const h=(location.hash||"#overview").slice(1); view=VIEWS.includes(h)?h:"overview";
+  VIEWS.forEach(v=>{$("v-"+v).hidden=v!==view; const a=$("n-"+v); v===view?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current")});
+  if(view==="log"&&S) seen=(S.feed||[]).length;
+  render();
+}
+addEventListener("hashchange",show);
+function setTheme(t){document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("sm-theme",t)}catch(e){}$("b-theme").textContent=t==="dark"?"Light":"Dark";render()}
+$("b-theme").onclick=()=>setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
+$("b-theme").textContent=document.documentElement.getAttribute("data-theme")==="dark"?"Light":"Dark";
+try{voice=localStorage.getItem("sm-voice")==="1"}catch(e){}
+$("b-voice").setAttribute("aria-pressed",voice);
+$("b-voice").onclick=()=>{voice=!voice;$("b-voice").setAttribute("aria-pressed",voice);try{localStorage.setItem("sm-voice",voice?"1":"0")}catch(e){}
+  if(voice) speak("Signo here. I'll read out what happens on the corridor."); else if(window.speechSynthesis) speechSynthesis.cancel()};
+function speak(t){if(!voice||!window.speechSynthesis) return; const u=new SpeechSynthesisUtterance(t); u.rate=1.05; speechSynthesis.cancel(); speechSynthesis.speak(u)}
+
+/* ---------- map ---------- */
+function el(tag,attrs,parent){const e=document.createElementNS("http://www.w3.org/2000/svg",tag);for(const k in attrs)e.setAttribute(k,attrs[k]);(parent||$("map")).appendChild(e);return e}
+function buildMap(){
+  $("map").innerHTML="";
+  el("rect",{x:0,y:0,width:1000,height:330,fill:"#11171d"});
+  const xs=[0,...J.map(j=>X[j]),1000];
+  for(let i=0;i<xs.length-1;i++){const a=xs[i]+(i?SIDE+8:0), b=xs[i+1]-(i<xs.length-2?SIDE+8:0);
+    if(b-a>20){el("rect",{x:a,y:8,width:b-a,height:MY-MAIN-16,fill:"#171f27"});el("rect",{x:a,y:MY+MAIN+8,width:b-a,height:330-MY-MAIN-16,fill:"#171f27"})}}
+  el("rect",{x:0,y:MY-MAIN,width:1000,height:MAIN*2,fill:"#30383f"});
+  J.forEach(j=>el("rect",{x:X[j]-SIDE,y:0,width:SIDE*2,height:330,fill:"#30383f"}));
+  [[0,X.J1],[X.J1,X.J2],[X.J2,X.J3],[X.J3,X.J4],[X.J4,1000]].forEach(([a,b])=>{const s=a+(a?SIDE+14:0), e=b-(b<1000?SIDE+14:0);
+    el("line",{x1:s,y1:MY-1.5,x2:e,y2:MY-1.5,stroke:"#b99a3b","stroke-width":1.2}); el("line",{x1:s,y1:MY+1.5,x2:e,y2:MY+1.5,stroke:"#b99a3b","stroke-width":1.2});
+    [MY-MAIN/2,MY+MAIN/2].forEach(y=>el("line",{x1:s,y1:y,x2:e,y2:y,stroke:"#c7cdd3","stroke-width":1,"stroke-dasharray":"9 9",opacity:.45}))});
+  J.forEach(j=>{const x=X[j];
+    [[0,MY-MAIN-14],[MY+MAIN+14,330]].forEach(([a,b])=>el("line",{x1:x,y1:a,x2:x,y2:b,stroke:"#c7cdd3","stroke-width":1,"stroke-dasharray":"8 8",opacity:.4}));
+    for(let k=-MAIN+3;k<MAIN-2;k+=5){el("rect",{x:x-SIDE-12,y:MY+k,width:8,height:2.6,fill:"#d4d9de",opacity:.7});el("rect",{x:x+SIDE+4,y:MY+k,width:8,height:2.6,fill:"#d4d9de",opacity:.7})}
+    for(let k=-SIDE+3;k<SIDE-2;k+=5){el("rect",{x:x+k,y:MY-MAIN-12,width:2.6,height:8,fill:"#d4d9de",opacity:.7});el("rect",{x:x+k,y:MY+MAIN+4,width:2.6,height:8,fill:"#d4d9de",opacity:.7})}
+    el("line",{x1:x-SIDE-14,y1:MY,x2:x-SIDE-14,y2:MY+MAIN,stroke:"#fff","stroke-width":2});
+    el("line",{x1:x+SIDE+14,y1:MY-MAIN,x2:x+SIDE+14,y2:MY,stroke:"#fff","stroke-width":2});
+    el("line",{x1:x-SIDE,y1:MY-MAIN-14,x2:x,y2:MY-MAIN-14,stroke:"#fff","stroke-width":2});
+    el("line",{x1:x,y1:MY+MAIN+14,x2:x+SIDE,y2:MY+MAIN+14,stroke:"#fff","stroke-width":2});
+    el("g",{id:"cars-"+j}); el("g",{id:"peds-"+j});
+    el("circle",{id:"ring-"+j,cx:x,cy:MY,r:44,fill:"none",stroke:"transparent","stroke-width":2.5});
+    [["W",x-SIDE-20,MY+MAIN+9],["E",x+SIDE+20,MY-MAIN-9],["N",x-SIDE-9,MY-MAIN-20],["S",x+SIDE+9,MY+MAIN+20]].forEach(([a,cx,cy])=>{
+      el("rect",{x:cx-6,y:cy-6,width:12,height:12,rx:1.5,fill:"#090c10"}); el("circle",{id:`sig-${j}-${a}`,cx,cy,r:3.8,fill:"#555"})});
+    // junction tag: shows just the ID (grey) until the control loop reports a status
+    el("rect",{id:"tagbg-"+j,x:x-SIDE-52,y:14,width:38,height:22,fill:"#090c10",stroke:"#2a333d"});
+    el("rect",{id:"tagsq-"+j,x:x-SIDE-44,y:22,width:7,height:7,fill:"#6e7883"});
+    el("text",{id:"tagt-"+j,x:x-SIDE-32,y:29.5,fill:"#e8ecf0","font-size":12,"font-family":"IBM Plex Mono,monospace","font-weight":500}).textContent=j;
+    el("g",{id:"cam-"+j}); el("g",{id:"amb-"+j});
+  });
+  el("text",{x:12,y:322,fill:"#6f7c88","font-size":11,"font-family":"IBM Plex Mono,monospace"}).textContent="MAIN 2+2 LANES · SIDE 1+1 · 250 M SPACING";
+  const p=el("g",{id:"pip",style:"transition:transform 1s ease"}); const pc=el("g",{transform:"translate(-14,-9)"},p);
+  el("path",{d:"M2 12 Q2 5 8 4.5 L17 4 Q22 4 24 8 L26.5 9.5 Q27 12 25.5 12.7 L3 12.7 Z",fill:"#f2b134"},pc);
+  el("path",{d:"M9 6 L15.5 5.6 L15.5 8.8 L7.8 8.8 Z M17 5.6 Q20.5 5.8 22 8.8 L17 8.8 Z",fill:"#dfe8ef"},pc);
+  el("circle",{cx:8,cy:13.5,r:2.8,fill:"#090c10"},pc); el("circle",{cx:20.5,cy:13.5,r:2.8,fill:"#090c10"},pc);
+  el("text",{x:0,y:16,"text-anchor":"middle",fill:"#f2b134","font-size":10,"font-family":"IBM Plex Mono,monospace"},p).textContent="Pip";
+}
+function head(o,m){const s=m?0:1; if(o.phase!==s) return COL.stop; if(o.stage==="green"||o.stage==="clear") return COL.go; if(o.stage==="amber") return COL.amber; return COL.stop}
+function drawCars(j,q){const g=$("cars-"+j); g.innerHTML=""; const x=X[j]; const n=a=>Math.min(14,Math.round(q[a]||0));
+  const car=(cx,cy,w,h)=>el("rect",{x:cx-w/2,y:cy-h/2,width:w,height:h,rx:1.5,fill:COL.car,opacity:.92},g);
+  for(let i=0;i<n(3);i++) car(x-SIDE-24-Math.floor(i/2)*13, MY+(i%2?MAIN*0.75:MAIN*0.25),10,7);
+  for(let i=0;i<n(1);i++) car(x+SIDE+24+Math.floor(i/2)*13, MY-(i%2?MAIN*0.75:MAIN*0.25),10,7);
+  for(let i=0;i<n(0);i++) car(x-SIDE/2, MY-MAIN-24-i*12,7,9.5);
+  for(let i=0;i<n(2);i++) car(x+SIDE/2, MY+MAIN+24+i*12,7,9.5)}
+function drawPeds(j,o){const g=$("peds-"+j); g.innerHTML=""; const x=X[j]; const p=o.peds_waiting||[0,0,0,0];
+  const dots=(n,cx,cy,dx,dy)=>{for(let i=0;i<Math.min(n,5);i++) el("circle",{cx:cx+i*dx,cy:cy+i*dy,r:2.8,fill:COL.ped},g)};
+  dots(p[0]||0,x-SIDE-8,MY-MAIN-6,-6,0); dots(p[2]||0,x+SIDE+8,MY+MAIN+6,6,0); dots(p[1]||0,x+SIDE+6,MY-MAIN-8,0,-6); dots(p[3]||0,x-SIDE-6,MY+MAIN+8,0,6)}
+
+/* ---------- render ---------- */
+function render(){
+  if(!S) return;
+  const k=S.kpi||{};
+  $("clock").textContent=k.t!=null?fmtTime(k.t,true):"--:--:--";
+  const live=S.age_s!=null&&S.age_s<10;
+  $("sq").className="sq "+(S.age_s==null?"":live?"ok":"bad");
+  $("conn").textContent=S.age_s==null?"No data":live?"Live":`Stale ${Math.round(S.age_s)} s`;
+
+  const fr=Math.round((S.fault_rate||0)*100), rush=(S.surge||1)>1, js=Object.values(S.junctions||{});
+  const amb=js.find(o=>o.emergency&&o.emergency.active);
+  const items=[];
+  if(S.mode==="observe") items.push(`<span class="it"><i class="sq warn"></i><b>Observe only:</b> SignalMind shows its decisions but is not changing System 1's lights</span>`);
+  if(amb) items.push(`<span class="it"><i class="sq bad"></i><b>Ambulance on route</b></span>`);
+  if(fr) items.push(`<span class="it"><i class="sq warn"></i>Cameras failing <b class="m">${fr}%</b></span>`);
+  if(rush) items.push(`<span class="it"><i class="sq warn"></i><b>Rush hour</b> (+30% traffic)</span>`);
+  $("scen").hidden=!items.length;
+  if(items.length) $("scen").innerHTML=`${items.join("")}${(fr||rush)?`<button type="button" id="b-clear">Clear scenario</button>`:""}`;
+  const bc=$("b-clear"); if(bc) bc.onclick=clearScenario;
+
+  const feed=S.feed||[]; const unread=Math.max(0,feed.length-seen); if(view==="log") seen=feed.length;
+  $("n-log").innerHTML="Log"+(unread&&view!=="log"?`<span class="n">${Math.min(unread,99)}</span>`:"");
+  if(feed.length){const top=feed[0], key=top.t+"|"+top.text;
+    if(key!==lastSay){const first=!lastSay; lastSay=key; $("say").textContent=top.text; $("saytime").textContent="Signo · "+fmtTime(top.t,true); mood(top.mood); if(top.junction) pip=top.junction; if(!first) speak(top.text)}}
+
+  if(view==="overview") renderOverview(k,feed);
+  if(view==="compare") renderCompare();
+  if(view==="junctions") renderJunctions();
+  if(view==="log") $("log").innerHTML=feed.length?feed.map(logRow).join(""):`<li style="display:block;color:var(--faint)">No events yet.</li>`;
+  if(document.activeElement!==$("fault")){$("fault").value=fr; $("faultv").textContent=fr+"%"}
+  $("b-surge").classList.toggle("on",rush); $("surge-l").textContent=rush?"Stop rush hour":"Start rush hour";
+}
+const sevc=m=>m==="red"?"var(--stop)":m==="amber"?"var(--amber)":"var(--go)";
+const logRow=f=>`<li><span class="tm">${fmtTime(f.t,true)}</span><span class="jn">${f.junction||"–"}</span><span><i class="sev" style="background:${sevc(f.mood)}"></i>${f.text}</span></li>`;
+
+function cmpRow(label,a,b,unit,dec,lowerBetter=true,note=""){
+  const fmt=dec?f1:f0; let c="", d="";
+  if(a!=null&&b!=null&&b!==0){const p=(a-b)/b*100; const better=lowerBetter?a<=b:a>=b;
+    d=`${p<=0?"−":"+"}${Math.abs(Math.trunc(p))}%`; c=Math.abs(p)<1?"":better?"good":"bad"}
+  return {label,a:fmt(a),b:fmt(b),unit,d,c,note};
+}
+function renderOverview(k,feed){
+  const b=S.mode==="observe"?null:S.kpi_b;   // no comparison while SignalMind isn't in control
+  $("nocmp").hidden=!!b||S.mode==="observe";
+  $("bandmeta").textContent=S.mode==="observe"
+    ? "Observe only: the lights run on System 1's own program, so these are not SignalMind results"
+    : "SignalMind, compared with BATCS-style on the same traffic";
+  $("bandmeta").style.color=S.mode==="observe"?"var(--amber)":"";
+  const rows=[
+    cmpRow("Average wait",k.avg_wait_s,b&&b.avg_wait_s,"s",1),
+    cmpRow("Longest walk wait",k.ped_max_wait_s,b&&b.ped_max_wait_s,"s",0),
+    cmpRow("Vehicles through",k.vehicles,b&&b.vehicles,"",0,false),
+    cmpRow("CO₂",k.co2_kg_h,b&&b.co2_kg_h,"kg/h",0)];
+  $("band").innerHTML=rows.map(r=>`<div class="cell"><div class="l">${r.label}</div><div class="v">${r.a}<small>${r.unit}</small></div>
+    <div class="c">${b?`<span>BATCS-style <span class="m">${r.b}${r.unit?" "+r.unit:""}</span></span><b class="${r.c}">${r.d||"±0%"}</b>`:`<span>${S.mode==="observe"?"comparison paused while observing":"no comparison yet"}</span>`}</div></div>`).join("");
+
+  let strip="";
+  J.forEach(j=>{
+    const o=S.junctions[j]; if(!o) return; const x=X[j]; const [mt,sqc,tc]=MODE[o.mode]||MODE.ai;
+    [["W",1],["E",1],["N",0],["S",0]].forEach(([a,m])=>$(`sig-${j}-${a}`).setAttribute("fill",head(o,m)));
+    drawCars(j,o.queues||[]); drawPeds(j,o);
+    const tagc={ai:"#4cc47c",degraded:"#e3aa4c",fallback:"#ef7466"}[o.mode];
+    // right-aligned to the side street so every tag (including J4's) stays inside the map
+    const tw=(j.length+1+mt.length)*7.3+26, tx=x-SIDE-14-tw;
+    $("tagbg-"+j).setAttribute("x",tx); $("tagbg-"+j).setAttribute("width",tw);
+    $("tagsq-"+j).setAttribute("x",tx+8); $("tagsq-"+j).setAttribute("fill",tagc);
+    $("tagt-"+j).setAttribute("x",tx+20); $("tagt-"+j).textContent=`${j} ${mt.toUpperCase()}`;
+    $("tagbg-"+j).setAttribute("stroke",o.mode==="ai"?"#2a333d":tagc);
+    const cg=$("cam-"+j); cg.innerHTML=""; const cx=x-SIDE-36, cy=MY-MAIN-46, hc=o.health>=.7?"#4cc47c":o.health>=.3?"#e3aa4c":"#ef7466";
+    el("rect",{x:cx-9,y:cy-6,width:14,height:11,rx:1.5,fill:"none",stroke:hc,"stroke-width":1.5},cg);
+    el("path",{d:`M${cx+5} ${cy-2} L${cx+10} ${cy-5} L${cx+10} ${cy+4} L${cx+5} ${cy+1}`,fill:"none",stroke:hc,"stroke-width":1.5},cg);
+    if(o.health<.3) el("line",{x1:cx-11,y1:cy+7,x2:cx+12,y2:cy-8,stroke:hc,"stroke-width":1.6},cg);
+    const em=o.emergency||{}, ag=$("amb-"+j); ag.innerHTML="";
+    $("ring-"+j).setAttribute("stroke",em.active?COL.amb:"transparent"); $("ring-"+j).style.animation=em.active?"ring .8s infinite alternate":"none";
+    if(em.active){const pos={W:[x-SIDE-110,MY+MAIN*0.25],E:[x+SIDE+110,MY-MAIN*0.25],N:[x-SIDE/2,MY-MAIN-90],S:[x+SIDE/2,MY+MAIN+90]}[em.approach]||[x-120,MY+6];
+      el("rect",{x:pos[0]-9,y:pos[1]-5,width:18,height:10,rx:1.5,fill:"#fff",stroke:COL.amb,"stroke-width":2},ag);
+      el("rect",{x:pos[0]-1.5,y:pos[1]-4,width:3,height:8,fill:COL.amb},ag); el("rect",{x:pos[0]-4,y:pos[1]-1.5,width:8,height:3,fill:COL.amb},ag);
+      el("text",{x:pos[0],y:pos[1]+(em.approach==="W"?22:-12),"text-anchor":"middle",fill:"#ffb3aa","font-size":11.5,"font-family":"IBM Plex Mono,monospace"},ag).textContent=`AMB ${em.eta_s!=null?Math.round(em.eta_s)+" s":""}`}
+    const cars=Math.round((o.queues||[]).reduce((a,b)=>a+b,0)), people=(o.peds_waiting||[]).reduce((a,b)=>a+b,0);
+    const gf=o.stage==="amber"?"Changing":o.stage==="allred"?"All red":(o.phase===0?"Main road":"Side street");
+    strip+=`<div class="js"><div class="t"><i class="sq ${sqc}"></i><b class="m">${j}</b><em class="${tc}" ${o.mode==="degraded"?'style="color:var(--amber)"':""}>${mt}</em></div>
+      <div class="kv"><span>Green for</span><span>${gf}</span></div>
+      <div class="kv"><span>Cars waiting</span><span class="m">${cars}</span></div>
+      <div class="kv"><span>People waiting</span><span class="m">${people}</span></div>
+      <div class="kv"><span>Camera</span><span class="m">${Math.round(o.health*100)}%</span></div>
+      ${em.active?`<div class="amb">Ambulance in ${Math.round(em.eta_s||0)} s</div>`:""}</div>`;
+  });
+  $("strip").innerHTML=strip||`<div class="js waiting">Waiting for the control loop. Junction status appears within a few seconds of it starting.</div>`;
+  $("pip").setAttribute("transform",`translate(${X[pip]+SIDE+60},${MY+MAIN+40})`);
+  $("mini").innerHTML=feed.slice(1,6).map(logRow).join("");
+}
+
+function renderCompare(){
+  const a=S.kpi, b=S.kpi_b;
+  if(!a||!b){$("cmpbig").textContent="Waiting for both runs. Start twin/shadow_baseline.py for the BATCS-style run."; $("cmpt").innerHTML=""; return}
+  const p=(a.avg_wait_s-b.avg_wait_s)/b.avg_wait_s*100;
+  if(S.mode==="observe"){ $("cmpbig").innerHTML=`<span style="color:var(--amber)">Observe only.</span> The live run uses System 1's own signal program right now, so this is not a SignalMind comparison yet.`; }
+  else $("cmpbig").innerHTML=Math.abs(p)<1?`Both controllers are level right now (${fmtTime(a.t,true)} into the run).`:
+    `<b class="${p<0?"good":"bad"}">${Math.abs(Math.trunc(p))}%</b>${p<0?"less":"more"} waiting with SignalMind than BATCS-style right now, ${fmtTime(a.t,true)} into the run.`;
+  const rows=[cmpRow("Average wait",a.avg_wait_s,b.avg_wait_s,"s",1),cmpRow("Longest walk wait",a.ped_max_wait_s,b.ped_max_wait_s,"s",0),
+    cmpRow("Vehicles through",a.vehicles,b.vehicles,"",0,false),cmpRow("Throughput",a.throughput_vph,b.throughput_vph,"veh/h",0,false),
+    cmpRow("Fuel",a.fuel_l_h,b.fuel_l_h,"L/h",0),cmpRow("CO₂",a.co2_kg_h,b.co2_kg_h,"kg/h",0),
+    cmpRow("Ambulance trip",a.ambulance_time_s,b.ambulance_time_s,"s",0),cmpRow("Longest queue",a.max_queue_m,b.max_queue_m,"m",0)];
+  $("cmpt").innerHTML=rows.map(r=>`<tr><td>${r.label}</td><td class="r m">${r.a} ${r.unit}</td><td class="r m">${r.b} ${r.unit}</td><td class="r m ${r.c}">${r.d||"–"}</td></tr>`).join("");
+  chart2("c-cmp",(S.kpi_hist||[]).map(k=>[k.t,k.avg_wait_s]),(S.kpi_b_hist||[]).map(k=>[k.t,k.avg_wait_s]));
+}
+
+function renderJunctions(){
+  let rows="", co2="", hl=""; const maxc=Math.max(1,...J.map(j=>(S.junctions[j]||{}).co2_g_s||0));
+  J.forEach(j=>{const o=S.junctions[j]; if(!o) return; const [mt,sqc]=MODE[o.mode]||MODE.ai;
+    const hc=o.health>=.7?"var(--go)":o.health>=.3?"var(--amber)":"var(--stop)";
+    rows+=`<tr><td class="m"><b>${j}</b></td><td><span class="state"><i class="sq ${sqc}"></i>${mt}</span></td>
+      <td>${o.phase===0?"Main road":"Side street"}${o.stage==="amber"?" · amber":o.stage==="allred"?" · all red":""}</td>
+      <td>${WHO[o.decided_by]||o.decided_by}</td><td class="r m" style="color:${hc}">${Math.round(o.health*100)}%</td>
+      <td>${SRC[o.source]||o.source}${o.fault&&o.fault!=="none"?` <span style="color:var(--muted)">(${o.fault})</span>`:""}</td>
+      <td class="r m">${(o.queues||[]).map(q=>Math.round(q)).join(" · ")}</td>
+      <td class="r m" style="color:${(o.ped_max_wait_s||0)>60?"var(--stop)":"inherit"}">${Math.round(o.ped_max_wait_s||0)} s</td><td class="r m">${f1(o.co2_g_s)}</td></tr>`;
+    co2+=`<div class="brow"><b class="m">${j}</b><div class="btrack"><i style="width:${100*(o.co2_g_s||0)/maxc}%;background:var(--muted)"></i></div><span class="m" style="text-align:right">${f1(o.co2_g_s)}</span></div>`;
+    hl+=`<div class="brow"><b class="m">${j}</b><div class="btrack"><i style="width:${Math.round(o.health*100)}%;background:${hc}"></i></div><span class="m" style="text-align:right">${Math.round(o.health*100)}%</span></div>`;
+  });
+  if(rows){$("jt").innerHTML=rows;$("co2bars").innerHTML=co2;$("hbars").innerHTML=hl}
+  $("cams").innerHTML=J.map(j=>{const f=S.frames&&S.frames[j], o=S.junctions[j];
+    return `<div class="cam">${f?`<img alt="${j} camera" src="data:image/jpeg;base64,${f}">`:(o&&o.health<.3?"Camera blind":"No video. Appears when System 1 (Unity) is connected.")}<span>${j}</span></div>`}).join("");
+}
+
+function fmtTime(t,hms){t=Math.max(0,Math.round(t));const h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+  return hms?`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`:`${h?h+":":""}${String(m).padStart(h?2:1,"0")}:${String(s).padStart(2,"0")}`}
+function mood(m){document.querySelectorAll(".sg-r").forEach(e=>e.setAttribute("opacity",m==="red"?1:.25));
+  document.querySelectorAll(".sg-a").forEach(e=>e.setAttribute("opacity",m==="amber"?1:.3));
+  document.querySelectorAll(".sg-g").forEach(e=>e.setAttribute("opacity",m==="green"?1:.3))}
+function chart2(id,A,B){
+  const c=$(id), r=c.getBoundingClientRect(), dpr=devicePixelRatio||1; if(!r.width) return;
+  c.width=r.width*dpr; c.height=r.height*dpr; const g=c.getContext("2d"); g.scale(dpr,dpr);
+  const W=r.width,H=r.height,L=36,Bt=20; g.clearRect(0,0,W,H); g.font="11px IBM Plex Mono, monospace";
+  const a=A.filter(p=>p[1]!=null), b=B.filter(p=>p[1]!=null), all=[...a,...b];
+  if(all.length<3){g.fillStyle=css("--faint");g.fillText("Collecting data…",L,H/2);return}
+  const t0=Math.min(...all.map(p=>p[0])), t1=Math.max(...all.map(p=>p[0])), hi=Math.max(...all.map(p=>p[1]))*1.15||1;
+  const xs=t=>L+(W-L-8)*(t-t0)/Math.max(t1-t0,1), ys=y=>H-Bt-(H-Bt-6)*y/hi;
+  g.strokeStyle=css("--rule2"); g.fillStyle=css("--faint"); g.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=hi*i/4, py=ys(y); g.beginPath(); g.moveTo(L,py); g.lineTo(W-4,py); g.stroke(); g.fillText(Math.round(y),2,py+4)}
+  g.fillText(fmtTime(t0),L,H-4); const lt=fmtTime(t1); g.fillText(lt,W-6-g.measureText(lt).width,H-4);
+  const line=(pts,col,w,dash)=>{if(pts.length<2) return; g.setLineDash(dash||[]); g.beginPath(); pts.forEach((p,i)=>i?g.lineTo(xs(p[0]),ys(p[1])):g.moveTo(xs(p[0]),ys(p[1]))); g.strokeStyle=col; g.lineWidth=w; g.stroke(); g.setLineDash([])};
+  line(b,css("--faint"),1.8,[5,4]); line(a,css("--accent"),2.2);
+}
+
+/* ---------- results ---------- */
+async function loadResults(){
+  try{
+    const r=await (await fetch("/api/results")).json(); if(!r.available) return;
+    const rows=r.rows, get=(c,s,f)=>rows.find(x=>x.controller===c&&x.scenario===s&&x.fault_rate===f);
+    base=get("batcs","normal",0)||null;
+    const sm=get("signalmind","normal",0), sm20=get("signalmind","normal",0.2), b=base, smS=get("signalmind","surge",0), bS=get("batcs","surge",0);
+    const pct=(a,c)=>a&&c?Math.floor((1-a/c)*100):null, F=[];
+    if(sm&&b) F.push(["good",`${pct(sm.avg_wait_s,b.avg_wait_s)}% less waiting`,`${f1(b.avg_wait_s)} → ${f1(sm.avg_wait_s)} s per vehicle vs BATCS-style, normal traffic.`]);
+    if(sm20&&b) F.push(["good",`${f1(sm20.avg_wait_s)} s with 20% of cameras broken`,`Still ${pct(sm20.avg_wait_s,b.avg_wait_s)}% below BATCS-style with all cameras working.`]);
+    if(sm&&b) F.push(["good",`Ambulances ${pct(sm.ambulance_time_s,b.ambulance_time_s)}% faster`,`${f0(b.ambulance_time_s)} → ${f0(sm.ambulance_time_s)} s across 1.25 km.`]);
+    if(sm&&b) F.push(["good",`${pct(sm.fuel_l_h,b.fuel_l_h)}% less fuel and CO₂`,`${f0(b.fuel_l_h)} → ${f0(sm.fuel_l_h)} L/h, because cars stop less.`]);
+    if(sm) F.push(["good",`Longest walk wait ${f0(sm.ped_max_wait_s)} s`,`Within the 60 s target in every normal-traffic run.`]);
+    if(smS&&bS) F.push(["bad",`Rush hour: BATCS-style wins`,`${f1(bS.avg_wait_s)} s vs ${f1(smS.avg_wait_s)} s at +30% traffic. Next to improve.`]);
+    $("findings").className=""; $("findings").innerHTML=`<div class="finds">${F.map(([c,h,p])=>`<div class="find"><b class="${c}">${h}</b><span>${p}</span></div>`).join("")}</div>`;
+    const a0=rows.filter(x=>x.scenario==="normal"&&x.fault_rate===0);
+    let h=`<div class="tw"><table><thead><tr><th>Normal traffic, cameras working</th><th class="r">Avg wait</th><th class="r">Fuel</th><th class="r">CO₂</th><th class="r">Ambulance trip</th><th class="r">Longest walk</th></tr></thead><tbody>`;
+    ["fixed","batcs","maxpressure","ppo","signalmind"].forEach(c=>{const x=a0.find(y=>y.controller===c); if(!x) return;
+      h+=`<tr${c==="signalmind"?' style="font-weight:600"':""}><td>${NAME[c]}</td><td class="r m">${f1(x.avg_wait_s)} s</td><td class="r m">${f0(x.fuel_l_h)} L/h</td><td class="r m">${f0(x.co2_kg_h)} kg/h</td><td class="r m">${f0(x.ambulance_time_s)} s</td><td class="r m">${f0(x.ped_max_wait_s)} s</td></tr>`});
+    const fr=[...new Set(rows.map(x=>x.fault_rate))].sort((a,b)=>a-b);
+    h+=`</tbody></table></div><div class="tw" style="border-top:1px solid var(--rule)"><table><thead><tr><th>Average wait as cameras fail</th>${fr.map(f=>`<th class="r">${Math.round(f*100)}%</th>`).join("")}</tr></thead><tbody>`;
+    [["maxpressure","Backup rule only, no recovery"],["ppo","AI only, no recovery"],["signalmind","SignalMind, with recovery"]].forEach(([c,n])=>{if(!rows.some(y=>y.controller===c)) return;
+      h+=`<tr${c==="signalmind"?' style="font-weight:600"':""}><td>${n}</td>${fr.map(f=>{const x=get(c,"normal",f);return `<td class="r m">${x?f1(x.avg_wait_s)+" s":"–"}</td>`}).join("")}</tr>`});
+    $("res").innerHTML=h+"</tbody></table></div>";
+  }catch(e){}
+}
+
+/* ---------- wiring ---------- */
+function toast(t){const e=$("toast"); e.textContent=t; e.classList.add("show"); clearTimeout(e._t); e._t=setTimeout(()=>e.classList.remove("show"),2400)}
+const post=(u,b,msg)=>fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)})
+  .then(r=>{if(msg) toast(r.ok?msg:"Request failed. Is the server running?")}).catch(()=>toast("Server not reachable"));
+function clearScenario(){post("/api/fault",{rate:0},null); post("/api/ctl",{cmd:"surge",factor:1.0},"Scenario cleared")}
+function connect(){
+  const ws=new WebSocket((location.protocol==="https:"?"wss://":"ws://")+location.host+"/ws");
+  ws.onmessage=e=>{const first=!S; S=JSON.parse(e.data); if(first) seen=(S.feed||[]).length; render()};
+  ws.onclose=()=>{$("sq").className="sq bad"; $("conn").textContent="Server offline"; setTimeout(connect,1500)};
+}
+$("fault").addEventListener("input",e=>$("faultv").textContent=e.target.value+"%");
+$("fault").addEventListener("change",e=>post("/api/fault",{rate:e.target.value/100},`Camera failures set to ${e.target.value}%`));
+$("b-amb").onclick=()=>post("/api/ctl",{cmd:"spawn_ambulance"},"Ambulance dispatched from the west end");
+$("b-ped").onclick=()=>post("/api/ctl",{cmd:"ped_surge",n:6},"Six pedestrians added");
+$("b-surge").onclick=()=>{const on=S&&S.surge>1; post("/api/ctl",{cmd:"surge",factor:on?1.0:1.3},on?"Rush hour stopped":"Rush hour started")};
+$("b-reset").onclick=()=>post("/api/ctl",{cmd:"reset"},"Restart sent. System 1 ignores it: restart the demo there.");
+buildMap(); show(); connect(); loadResults(); setInterval(loadResults,30000);
+let rt; addEventListener("resize",()=>{clearTimeout(rt); rt=setTimeout(render,120)});
+</script>
+</body>
+</html>

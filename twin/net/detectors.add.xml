@@ -1,0 +1,26 @@
+<additional>
+  <inductionLoop id="loop_W0_J1_1" lane="W0_J1_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_W0_J1_2" lane="W0_J1_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J2_J1_1" lane="J2_J1_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J2_J1_2" lane="J2_J1_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_N1_J1_1" lane="N1_J1_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_S1_J1_1" lane="S1_J1_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J1_J2_1" lane="J1_J2_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J1_J2_2" lane="J1_J2_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J3_J2_1" lane="J3_J2_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J3_J2_2" lane="J3_J2_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_N2_J2_1" lane="N2_J2_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_S2_J2_1" lane="S2_J2_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J2_J3_1" lane="J2_J3_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J2_J3_2" lane="J2_J3_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J4_J3_1" lane="J4_J3_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J4_J3_2" lane="J4_J3_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_N3_J3_1" lane="N3_J3_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_S3_J3_1" lane="S3_J3_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J3_J4_1" lane="J3_J4_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_J3_J4_2" lane="J3_J4_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_E0_J4_1" lane="E0_J4_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_E0_J4_2" lane="E0_J4_2" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_N4_J4_1" lane="N4_J4_1" pos="-30" period="5" file="NUL"/>
+  <inductionLoop id="loop_S4_J4_1" lane="S4_J4_1" pos="-30" period="5" file="NUL"/>
+</additional>

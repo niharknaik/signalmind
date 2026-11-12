@@ -1,0 +1,46 @@
+<additional>
+<tlLogic id="J1" type="actuated" programID="batcs" offset="0">
+  <param key="max-gap" value="3.0"/><param key="detector-gap" value="2.0"/>
+  <phase duration="30" minDuration="12" maxDuration="55" state="rrrgGGgrrrgGGgGrGr"/>
+  <phase duration="4" state="rrrgGGgrrrgGGgrrrr"/>
+  <phase duration="3" state="rrryyyyrrryyyyrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+  <phase duration="20" minDuration="10" maxDuration="40" state="gGgrrrrgGgrrrrrGrG"/>
+  <phase duration="4" state="gGgrrrrgGgrrrrrrrr"/>
+  <phase duration="3" state="yyyrrrryyyrrrrrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+</tlLogic>
+<tlLogic id="J2" type="actuated" programID="batcs" offset="23">
+  <param key="max-gap" value="3.0"/><param key="detector-gap" value="2.0"/>
+  <phase duration="30" minDuration="12" maxDuration="55" state="rrrgGGgrrrgGGgGrGr"/>
+  <phase duration="4" state="rrrgGGgrrrgGGgrrrr"/>
+  <phase duration="3" state="rrryyyyrrryyyyrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+  <phase duration="20" minDuration="10" maxDuration="40" state="gGgrrrrgGgrrrrrGrG"/>
+  <phase duration="4" state="gGgrrrrgGgrrrrrrrr"/>
+  <phase duration="3" state="yyyrrrryyyrrrrrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+</tlLogic>
+<tlLogic id="J3" type="actuated" programID="batcs" offset="45">
+  <param key="max-gap" value="3.0"/><param key="detector-gap" value="2.0"/>
+  <phase duration="30" minDuration="12" maxDuration="55" state="rrrgGGgrrrgGGgGrGr"/>
+  <phase duration="4" state="rrrgGGgrrrgGGgrrrr"/>
+  <phase duration="3" state="rrryyyyrrryyyyrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+  <phase duration="20" minDuration="10" maxDuration="40" state="gGgrrrrgGgrrrrrGrG"/>
+  <phase duration="4" state="gGgrrrrgGgrrrrrrrr"/>
+  <phase duration="3" state="yyyrrrryyyrrrrrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+</tlLogic>
+<tlLogic id="J4" type="actuated" programID="batcs" offset="68">
+  <param key="max-gap" value="3.0"/><param key="detector-gap" value="2.0"/>
+  <phase duration="30" minDuration="12" maxDuration="55" state="rrrgGGgrrrgGGgGrGr"/>
+  <phase duration="4" state="rrrgGGgrrrgGGgrrrr"/>
+  <phase duration="3" state="rrryyyyrrryyyyrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+  <phase duration="20" minDuration="10" maxDuration="40" state="gGgrrrrgGgrrrrrGrG"/>
+  <phase duration="4" state="gGgrrrrgGgrrrrrrrr"/>
+  <phase duration="3" state="yyyrrrryyyrrrrrrrr"/>
+  <phase duration="2" state="rrrrrrrrrrrrrrrrrr"/>
+</tlLogic>
+</additional>

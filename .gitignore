@@ -1,0 +1,12 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+dashboard/node_modules/
+dashboard/dist/
+unity/**/Library/
+unity/**/Temp/
+unity/**/Logs/
+*.log
+experiments/results/test.csv
+experiments/results/sm_v2.csv

@@ -1,0 +1,38 @@
+<routes>
+  <vType id="car" vClass="passenger" emissionClass="HBEFA4/PC_petrol_Euro-4" length="4.5" sigma="0.5"/>
+  <vType id="bike2w" vClass="motorcycle" emissionClass="HBEFA4/MC_4S_le250cc_Euro-4" length="2.2" maxSpeed="16" sigma="0.6" latAlignment="arbitrary" minGapLat="0.3"/>
+  <vType id="auto3w" vClass="passenger" emissionClass="HBEFA4/PC_petrol_Euro-3" length="3.0" maxSpeed="12" sigma="0.6" guiShape="passenger/hatchback"/>
+  <vType id="bus" vClass="bus" emissionClass="HBEFA3/Bus" length="12" personCapacity="60"/>
+  <vTypeDistribution id="mix">
+    <vType id="car_m" vClass="passenger" emissionClass="HBEFA4/PC_petrol_Euro-4" length="4.5" sigma="0.5" probability="0.40"/>
+    <vType id="bike_m" vClass="motorcycle" emissionClass="HBEFA4/MC_4S_le250cc_Euro-4" length="2.2" maxSpeed="16" sigma="0.6" probability="0.40"/>
+    <vType id="auto_m" vClass="passenger" emissionClass="HBEFA4/PC_petrol_Euro-3" length="3.0" maxSpeed="12" sigma="0.6" probability="0.15"/>
+    <vType id="bus_m" vClass="bus" emissionClass="HBEFA3/Bus" length="12" personCapacity="60" probability="0.05"/>
+  </vTypeDistribution>
+  <flow id="main_we" type="mix" begin="0" end="3600" from="W0_J1" to="J4_E0" vehsPerHour="1000" departLane="best" departSpeed="max"/>
+  <flow id="main_ew" type="mix" begin="0" end="3600" from="E0_J4" to="J1_W0" vehsPerHour="1200" departLane="best" departSpeed="max"/>
+  <flow id="ns1" type="mix" begin="0" end="3600" from="N1_J1" to="J1_S1" vehsPerHour="180"/>
+  <flow id="sn1" type="mix" begin="0" end="3600" from="S1_J1" to="J1_N1" vehsPerHour="180"/>
+  <flow id="nt1" type="mix" begin="0" end="3600" from="N1_J1" to="J1_J2" vehsPerHour="90"/>
+  <flow id="st1" type="mix" begin="0" end="3600" from="S1_J1" to="J1_W0" vehsPerHour="90"/>
+  <flow id="ns2" type="mix" begin="0" end="3600" from="N2_J2" to="J2_S2" vehsPerHour="180"/>
+  <flow id="sn2" type="mix" begin="0" end="3600" from="S2_J2" to="J2_N2" vehsPerHour="180"/>
+  <flow id="nt2" type="mix" begin="0" end="3600" from="N2_J2" to="J2_J3" vehsPerHour="90"/>
+  <flow id="st2" type="mix" begin="0" end="3600" from="S2_J2" to="J2_J1" vehsPerHour="90"/>
+  <flow id="ns3" type="mix" begin="0" end="3600" from="N3_J3" to="J3_S3" vehsPerHour="180"/>
+  <flow id="sn3" type="mix" begin="0" end="3600" from="S3_J3" to="J3_N3" vehsPerHour="180"/>
+  <flow id="nt3" type="mix" begin="0" end="3600" from="N3_J3" to="J3_J4" vehsPerHour="90"/>
+  <flow id="st3" type="mix" begin="0" end="3600" from="S3_J3" to="J3_J2" vehsPerHour="90"/>
+  <flow id="ns4" type="mix" begin="0" end="3600" from="N4_J4" to="J4_S4" vehsPerHour="180"/>
+  <flow id="sn4" type="mix" begin="0" end="3600" from="S4_J4" to="J4_N4" vehsPerHour="180"/>
+  <flow id="nt4" type="mix" begin="0" end="3600" from="N4_J4" to="J4_E0" vehsPerHour="90"/>
+  <flow id="st4" type="mix" begin="0" end="3600" from="S4_J4" to="J4_J3" vehsPerHour="90"/>
+  <personFlow id="pn1" begin="0" end="3600" period="exp(0.025)"><walk from="N1_J1" to="J1_S1"/></personFlow>
+  <personFlow id="ps1" begin="0" end="3600" period="exp(0.025)"><walk from="S1_J1" to="J1_N1"/></personFlow>
+  <personFlow id="pn2" begin="0" end="3600" period="exp(0.025)"><walk from="N2_J2" to="J2_S2"/></personFlow>
+  <personFlow id="ps2" begin="0" end="3600" period="exp(0.025)"><walk from="S2_J2" to="J2_N2"/></personFlow>
+  <personFlow id="pn3" begin="0" end="3600" period="exp(0.025)"><walk from="N3_J3" to="J3_S3"/></personFlow>
+  <personFlow id="ps3" begin="0" end="3600" period="exp(0.025)"><walk from="S3_J3" to="J3_N3"/></personFlow>
+  <personFlow id="pn4" begin="0" end="3600" period="exp(0.025)"><walk from="N4_J4" to="J4_S4"/></personFlow>
+  <personFlow id="ps4" begin="0" end="3600" period="exp(0.025)"><walk from="S4_J4" to="J4_N4"/></personFlow>
+</routes>

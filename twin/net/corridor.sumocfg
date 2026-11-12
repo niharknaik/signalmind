@@ -1,0 +1,10 @@
+<configuration>
+  <input>
+    <net-file value="corridor.net.xml"/>
+    <route-files value="corridor.rou.xml"/>
+    <additional-files value="detectors.add.xml"/>
+  </input>
+  <time><begin value="0"/><end value="3600"/><step-length value="1"/></time>
+  <processing><time-to-teleport value="300"/><lateral-resolution value="0.8"/></processing>
+  <report><no-step-log value="true"/><no-warnings value="true"/></report>
+</configuration>

@@ -1,0 +1,28 @@
+<edges>
+  <edge id="W0_J1" from="W0" to="J1" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J1_W0" from="J1" to="W0" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J1_J2" from="J1" to="J2" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J2_J1" from="J2" to="J1" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J2_J3" from="J2" to="J3" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J3_J2" from="J3" to="J2" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J3_J4" from="J3" to="J4" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J4_J3" from="J4" to="J3" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="J4_E0" from="J4" to="E0" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="E0_J4" from="E0" to="J4" numLanes="2" speed="13.89" sidewalkWidth="2.5"/>
+  <edge id="N1_J1" from="N1" to="J1" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J1_N1" from="J1" to="N1" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="S1_J1" from="S1" to="J1" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J1_S1" from="J1" to="S1" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="N2_J2" from="N2" to="J2" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J2_N2" from="J2" to="N2" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="S2_J2" from="S2" to="J2" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J2_S2" from="J2" to="S2" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="N3_J3" from="N3" to="J3" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J3_N3" from="J3" to="N3" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="S3_J3" from="S3" to="J3" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J3_S3" from="J3" to="S3" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="N4_J4" from="N4" to="J4" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J4_N4" from="J4" to="N4" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="S4_J4" from="S4" to="J4" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+  <edge id="J4_S4" from="J4" to="S4" numLanes="1" speed="11.11" sidewalkWidth="2.0"/>
+</edges>
